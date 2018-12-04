@@ -5,7 +5,16 @@
       <div class="short"></div>
       <div class="draw" ref="draw">
         <div class="flow">
-          <svg width="1600" height="1600"></svg>
+          <svg width="1600" height="1600" @mousemove="move" @mouseup="up">
+            <defs>
+
+            </defs>
+            <g class="main-group">
+              <Operator />
+            </g>
+            <g class="brush-group"></g>
+            <g class="link-group"></g>
+          </svg>
         </div>
       </div>
     </div>
@@ -14,11 +23,29 @@
 
 <script lang="ts">
 import {Vue, Component, Emit} from 'vue-property-decorator';
+import {
+  State,
+  Getter,
+  Action,
+  Mutation,
+  namespace
+} from 'vuex-class';
+import Operator from './Operator.vue';
 
 @Component({
-  components: {}
+  components: {
+    Operator
+  }
 })
 export default class Dag extends Vue {
+  @State('isMouseDown')
+  public isMouseDown!: boolean;
+  @Mutation('setMouseDown') public setMouseDown!: (down: boolean) => void;
+  @Emit() public move() {}
+  @Emit() public up() {
+    this.setMouseDown(false);
+  }
+
 }
 
 </script>
