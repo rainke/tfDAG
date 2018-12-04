@@ -27,3 +27,5 @@ yarn run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+鉴于d3的drag的局限性，项目不适用d3.drag。
