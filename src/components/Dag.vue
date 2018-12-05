@@ -10,7 +10,7 @@
 
             </defs>
             <g class="main-group">
-              <Operator />
+              <Operator v-for="o in ops" :key="o.id" :x="o.x" :op="o" />
             </g>
             <g class="brush-group"></g>
             <g class="link-group"></g>
@@ -31,6 +31,7 @@ import {
   namespace
 } from 'vuex-class';
 import Operator from './Operator.vue';
+import {Operator as op} from './relation';
 
 @Component({
   components: {
@@ -38,13 +39,11 @@ import Operator from './Operator.vue';
   }
 })
 export default class Dag extends Vue {
-  @State('isMouseDown')
-  public isMouseDown!: boolean;
+  public ops: op[] = [new op(), new op(300)];
+  @State('isMouseDown') public isMouseDown!: boolean;
   @Mutation('setMouseDown') public setMouseDown!: (down: boolean) => void;
   @Emit() public move() {}
-  @Emit() public up() {
-    this.setMouseDown(false);
-  }
+  @Emit() public up() {}
 
 }
 
