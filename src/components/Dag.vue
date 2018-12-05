@@ -7,7 +7,9 @@
         <div class="flow">
           <svg width="1600" height="1600" @mousemove="move" @mouseup="up">
             <defs>
-
+              <marker id="arrow" markerWidth="10" markerHeight="6" refY="3" refX="10" orient="auto">
+                <path d="M0,0 L10,3 L0,6 z"></path>
+              </marker>
             </defs>
             <g class="main-group">
               <Operator v-for="o in ops" :key="o.id" :x="o.x" :op="o" />
@@ -18,6 +20,7 @@
         </div>
       </div>
     </div>
+    <Dialog />
   </div>
 </template>
 
@@ -25,17 +28,16 @@
 import {Vue, Component, Emit} from 'vue-property-decorator';
 import {
   State,
-  Getter,
-  Action,
-  Mutation,
-  namespace
+  Mutation
 } from 'vuex-class';
 import Operator from './Operator.vue';
+import Dialog from './Dialog.vue';
 import {Operator as op} from './relation';
 
 @Component({
   components: {
-    Operator
+    Operator,
+    Dialog
   }
 })
 export default class Dag extends Vue {
