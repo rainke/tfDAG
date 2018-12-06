@@ -1,6 +1,7 @@
 let id = 0;
 export class Operator {
     public next: Operator[] = [];
+    public selected = false; // 是否选中
     public id = id++;
     public x = 0;
     public y = 0;

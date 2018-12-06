@@ -10,8 +10,8 @@ import Dag from './components/Dag.vue';
 
 @Component({
   components: {
-    Dag,
-  },
+    Dag
+  }
 })
 export default class App extends Vue {}
 </script>

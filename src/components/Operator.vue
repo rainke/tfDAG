@@ -1,6 +1,6 @@
 <template>
   <g class="operator" v-drag="drag" @mouseup="end">
-    <rect class="main-rect" @dblclick="openDialog" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
+    <rect class="main-rect" :class="{selected: op.selected}" @dblclick="openDialog" @click="selectOp($event)" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
     <rect class="linkdot" :x="x-5" :y="y+45" width="10" height="10" fill="none"></rect>
     <rect class="linkdot" @mousedown="startDraw($event)" :x="x+95" :y="y+45" width="10" height="10" fill="none"></rect>
     <line v-if="isMouseDown" :x1="x+100" :y1="y+50" :x2="drawTo.x" :y2="drawTo.y" stroke="red" marker-end="url(#arrow)"></line>
@@ -23,7 +23,8 @@
 <script lang="ts">
 import {Vue, Component, Emit, Prop} from 'vue-property-decorator';
 import {State, Mutation} from 'vuex-class';
-import * as d3 from 'd3';
+import {select, mouse} from 'd3-selection';
+import {Mode} from '@/model';
 import {Operator as op} from './relation';
 import Dialog from './Dialog.vue';
 
@@ -38,6 +39,7 @@ export default class Operator extends Vue {
   }) public op!: op;
 
   @State('currentOperator') public currentOperator!: op | undefined;
+  @State('mode') public mode!: Mode;
 
   public isMouseDown: boolean = false;
 
@@ -57,16 +59,21 @@ export default class Operator extends Vue {
     return this.op.drawTo;
   }
 
+  public drag = (e: {dx: number, dy: number}) => {
+    this.op.x += e.dx;
+    this.op.y += e.dy;
+  }
+
   @Emit() public startDraw(event: MouseEvent) {
     event.stopImmediatePropagation();
     this.isMouseDown = true;
     this.setCurrOperator(this.op);
     const self = this;
-    const view = d3.select(event.view);
+    const view = select(event.view);
     view.on('mousemove.drawLink', function() {
-      const svg = d3.select('svg');
+      const svg = select('svg');
       const svgNode = svg.node() as SVGSVGElement;
-      const [x, y] = d3.mouse(svgNode);
+      const [x, y] = mouse(svgNode);
       if (self.isMouseDown) {
         self.op.drawTo = {x, y};
       }
@@ -84,14 +91,15 @@ export default class Operator extends Vue {
     this.setCurrOperator(void 0);
   }
 
-  @Emit() public removeLinkWith(o: op) {
-    const index = this.op.next.indexOf(o);
-    this.op.next.splice(index, 1);
+  @Emit() private selectOp(e: MouseEvent) {
+    if (this.mode === Mode.SELECT) {
+      this.op.selected = true;
+    }
   }
 
-  public drag = (e: {dx: number, dy: number}) => {
-    this.op.x += e.dx;
-    this.op.y += e.dy;
+  @Emit() private removeLinkWith(o: op) {
+    const index = this.op.next.indexOf(o);
+    this.op.next.splice(index, 1);
   }
 
   @Emit() private openDialog() {
@@ -114,5 +122,11 @@ export default class Operator extends Vue {
 }
 .linkline:hover {
   stroke: aqua;
+}
+
+.main-rect {
+  &.selected {
+    fill: blue;
+  }
 }
 </style>
