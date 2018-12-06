@@ -1,4 +1,5 @@
 export enum Mode {
   NONE,
-  SELECT
+  SELECT,
+  ADD_OPERATOR
 }

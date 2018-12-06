@@ -5,10 +5,17 @@
       <div class="short">
         <button @click="setSelectMode">选择</button>
         <button @click="noSelect">取消选择</button>
+        <button @click="addOpertor">添加Operator</button>
       </div>
-      <div class="draw" ref="draw">
+      <div class="draw">
         <div class="flow">
-          <svg ref="svg" width="1600" height="1600" :class="{'select-mode': mode === 1}">
+          <svg
+            ref="svg"
+            width="1600"
+            height="1600"
+            :class="{'select-mode': mode === 1}"
+            @click="handleSvgClick($event)"
+          >
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="6" refY="3" refX="10" orient="auto">
                 <path d="M0,0 L10,3 L0,6 z"></path>
@@ -31,7 +38,7 @@
 import { Vue, Component, Emit } from 'vue-property-decorator';
 import { State, Mutation } from 'vuex-class';
 import { brush } from 'd3-brush';
-import { select, event } from 'd3-selection';
+import { select, event, mouse } from 'd3-selection';
 import Operator from './Operator.vue';
 import Dialog from './Dialog.vue';
 import { Operator as Op } from './relation';
@@ -76,6 +83,18 @@ export default class Dag extends Vue {
     brushGroup.call(b);
   }
 
+  @Emit() private addOpertor() {
+    this.setMode(Mode.ADD_OPERATOR);
+  }
+
+  @Emit() private handleSvgClick(e: MouseEvent) {
+    if (this.mode === Mode.ADD_OPERATOR) {
+      const {offsetX, offsetY} = e;
+      this.ops.push(new Op(offsetX, offsetY));
+      this.setSelectNone();
+    }
+  }
+
   private setSelectNone() {
     this.setMode(Mode.NONE);
     select<SVGGElement, {}>('.brush-group').on('.brush', null);
@@ -111,7 +130,7 @@ export default class Dag extends Vue {
   }
 
   private handleKeyUp(e: KeyboardEvent) {
-    if (e.key === 'Delete') {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
       this.ops = this.ops.filter(op => !op.selected);
     } else if (e.key === 'Escape') {
       this.noSelect();
