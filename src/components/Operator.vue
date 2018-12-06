@@ -1,6 +1,6 @@
 <template>
   <g class="operator" v-drag="drag" @mouseup="end">
-    <rect class="main-rect" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
+    <rect class="main-rect" @dblclick="openDialog" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
     <rect class="linkdot" :x="x-5" :y="y+45" width="10" height="10" fill="none"></rect>
     <rect class="linkdot" @mousedown="startDraw($event)" :x="x+95" :y="y+45" width="10" height="10" fill="none"></rect>
     <line v-if="isMouseDown" :x1="x+100" :y1="y+50" :x2="drawTo.x" :y2="drawTo.y" stroke="red" marker-end="url(#arrow)"></line>
@@ -17,7 +17,6 @@
       stroke="red"
       marker-end="url(#arrow)"
     ></line>
-    <!-- pointer-events="none" -->
   </g>
 </template>
 
@@ -26,12 +25,18 @@ import {Vue, Component, Emit, Prop} from 'vue-property-decorator';
 import {State, Mutation} from 'vuex-class';
 import * as d3 from 'd3';
 import {Operator as op} from './relation';
+import Dialog from './Dialog.vue';
 
-@Component
+@Component({
+  components: {
+    Dialog
+  }
+})
 export default class Operator extends Vue {
   @Prop({
     default: new op()
   }) public op!: op;
+
   @State('currentOperator') public currentOperator!: op | undefined;
 
   public isMouseDown: boolean = false;
@@ -87,6 +92,10 @@ export default class Operator extends Vue {
   public drag = (e: {dx: number, dy: number}) => {
     this.op.x += e.dx;
     this.op.y += e.dy;
+  }
+
+  @Emit() private openDialog() {
+    this.$emit('open');
   }
 }
 

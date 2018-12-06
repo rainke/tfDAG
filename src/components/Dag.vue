@@ -5,22 +5,22 @@
       <div class="short"></div>
       <div class="draw" ref="draw">
         <div class="flow">
-          <svg width="1600" height="1600" @mousemove="move" @mouseup="up">
+          <svg width="1600" height="1600">
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="6" refY="3" refX="10" orient="auto">
                 <path d="M0,0 L10,3 L0,6 z"></path>
               </marker>
             </defs>
             <g class="main-group">
-              <Operator v-for="o in ops" :key="o.id" :x="o.x" :op="o" />
+              <Operator @open="openDialog" v-for="o in ops" :key="o.id" :x="o.x" :op="o" />
             </g>
             <g class="brush-group"></g>
             <g class="link-group"></g>
           </svg>
+          <Dialog :visible="dialogVisible" @close="closeDialog"/>
         </div>
       </div>
     </div>
-    <Dialog />
   </div>
 </template>
 
@@ -44,8 +44,13 @@ export default class Dag extends Vue {
   public ops: op[] = [new op(), new op(300)];
   @State('isMouseDown') public isMouseDown!: boolean;
   @Mutation('setMouseDown') public setMouseDown!: (down: boolean) => void;
-  @Emit() public move() {}
-  @Emit() public up() {}
+  public dialogVisible = false;
+  @Emit() public openDialog() {
+    this.dialogVisible = true;
+  }
+  @Emit() public closeDialog() {
+    this.dialogVisible = false;
+  }
 
 }
 
