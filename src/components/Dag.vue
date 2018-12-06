@@ -8,7 +8,7 @@
       </div>
       <div class="draw" ref="draw">
         <div class="flow">
-          <svg width="1600" height="1600" :class="{'select-mode': mode === 1}">
+          <svg ref="svg" width="1600" height="1600" :class="{'select-mode': mode === 1}">
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="6" refY="3" refX="10" orient="auto">
                 <path d="M0,0 L10,3 L0,6 z"></path>
@@ -34,7 +34,7 @@ import { brush } from 'd3-brush';
 import { select, event } from 'd3-selection';
 import Operator from './Operator.vue';
 import Dialog from './Dialog.vue';
-import { Operator as op } from './relation';
+import { Operator as Op } from './relation';
 import { Mode } from '@/model';
 
 @Component({
@@ -44,7 +44,7 @@ import { Mode } from '@/model';
   }
 })
 export default class Dag extends Vue {
-  public ops: op[] = [new op(), new op(300)];
+  public ops: Op[] = [new Op(), new Op(300)];
   @State('mode') public mode!: Mode;
   @Mutation('setMode') public setMode!: (mode: Mode) => void;
   public dialogVisible = false;
@@ -83,24 +83,23 @@ export default class Dag extends Vue {
   }
 
   private selectOp(selection: [[number, number], [number, number]]) {
-    // const svgLoc = (this.svg.node() as SVGSVGElement).getBoundingClientRect();
-    // this.ops.forEach(shape => {
-    //   const location = shape.Location;
-    //   const shapeSelection = [
-    //     [location.left - svgLoc.left, location.top - svgLoc.top],
-    //     [location.right - svgLoc.left, location.bottom - svgLoc.top]
-    //   ];
-    //   if (
-    //     shapeSelection[0][0] > selection[0][0] &&
-    //     shapeSelection[0][1] > selection[0][1] &&
-    //     shapeSelection[1][0] < selection[1][0] &&
-    //     shapeSelection[1][1] < selection[1][1]
-    //   ) {
-    //     shape.setSelected(true);
-    //   } else {
-    //     shape.setSelected(false);
-    //   }
-    // });
+    const svgLoc = (this.$refs.svg as Element).getBoundingClientRect();
+    this.ops.forEach(op => {
+      const opSelection = [
+        [op.x, op.y],
+        [op.x + op.width, op.y + op.width]
+      ];
+      if (
+        opSelection[0][0] > selection[0][0] &&
+        opSelection[0][1] > selection[0][1] &&
+        opSelection[1][0] < selection[1][0] &&
+        opSelection[1][1] < selection[1][1]
+      ) {
+        op.selected = true;
+      } else {
+        op.selected = false;
+      }
+    });
   }
 
   private mounted() {
@@ -113,7 +112,7 @@ export default class Dag extends Vue {
 
   private handleKeyUp(e: KeyboardEvent) {
     if (e.key === 'Delete') {
-      this.ops = this.ops.filter(o => !o.selected);
+      this.ops = this.ops.filter(op => !op.selected);
     } else if (e.key === 'Escape') {
       this.noSelect();
       this.setSelectNone();
