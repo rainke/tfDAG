@@ -4,9 +4,33 @@
       <transition name="slide-fade">
         <div class="dialog-content" v-show="visible">
           <header>hello</header>
-          <div class="dialog-body"></div>
+          <div class="dialog-body">
+            <div v-if="operator">
+              <div class="form-group">
+                <label class="form-label">task_id: </label>
+                <div>
+                  <div>
+                    <Input v-model="operator.task_id" @input="checkValid"/>
+                  </div>
+                  <div class="error-message">{{errorMessage}}</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <span class="form-label">operator: </span> <span>{{operator.operator}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">method: </span> <span>{{operator.method}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">path: </span> <span>{{operator.path}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">token: </span> <span>{{operator.token}}</span>
+              </div>
+            </div>
+          </div>
           <footer>
-              <button>确认</button>
+              <button @click="handleSubmit">确认</button>
               <button @click="close">取消</button>
           </footer>
         </div>
@@ -16,13 +40,34 @@
 </template>
 <script lang="ts">
 import {Vue, Component, Emit, Prop, Watch} from 'vue-property-decorator';
+import { Operator } from '@/components/relation';
 
 @Component
 export default class Dialog extends Vue {
   @Prop({default: false}) public readonly visible!: boolean;
+  @Prop() public operator!: Operator;
+  private errorMessage: string = '';
 
   @Emit() private close() {
     this.$emit('close');
+  }
+
+  @Emit() private handleSubmit() {
+    if (!this.errorMessage) {
+      this.$emit('submit');
+    }
+  }
+
+  @Emit() private checkValid() {
+    if (!this.operator.task_id) {
+      this.errorMessage = 'task_id不能为空';
+    } else {
+      if (!this.operator.task_id.match(/^[a-zA-z][\w\.]*$/)) {
+        this.errorMessage = '非法task_id';
+      } else {
+        this.errorMessage = '';
+      }
+    }
   }
 
   @Watch('visible') private onVisibleChange(v: boolean, ov: boolean) {
@@ -89,6 +134,20 @@ export default class Dialog extends Vue {
       }
       .dialog-body {
         padding: 15px;
+        .form-group {
+          display: flex;
+          margin: 10px 20px;
+          .form-label {
+            width: 120px;
+            text-align: right;
+            padding: 0 10px;
+            line-height: 30px;
+          }
+          .error-message {
+            color: red;
+            margin-top: 5px;
+          }
+        }
       }
       footer {
         padding: 15px;

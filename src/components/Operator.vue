@@ -103,7 +103,7 @@ export default class Operator extends Vue {
   }
 
   @Emit() private openDialog() {
-    this.$emit('open');
+    this.$emit('open', this.op);
   }
 }
 

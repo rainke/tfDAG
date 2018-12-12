@@ -3,9 +3,10 @@
     <div class="tool"></div>
     <div class="design">
       <div class="short">
-        <button @click="setSelectMode">选择</button>
-        <button @click="noSelect">取消选择</button>
-        <button @click="addOpertor">添加Operator</button>
+        <button class="sel-mode" :class="{active: mode === 1}" @click="setSelectMode">选择</button> <br>
+        <button class="esc" @click="noSelect">取消选择</button><br>
+        <button class="add-mode" @click="addOpertor">添加Operator</button><br>
+        <button class="add-mode" @click="submitResult">提交</button><br>
       </div>
       <div class="draw">
         <div class="flow">
@@ -27,7 +28,7 @@
             <g class="brush-group"></g>
             <g class="link-group"></g>
           </svg>
-          <Dialog :visible="dialogVisible" @close="closeDialog"/>
+          <Dialog :visible="dialogVisible" :operator="dialogOperator" @close="closeDialog" @submit="handleSubmit"/>
         </div>
       </div>
     </div>
@@ -39,9 +40,10 @@ import { Vue, Component, Emit } from 'vue-property-decorator';
 import { State, Mutation } from 'vuex-class';
 import { brush } from 'd3-brush';
 import { select, event, mouse } from 'd3-selection';
+import {get, post} from '@/utils/ajax';
+import { Operator as Op, computeResult } from './relation';
 import Operator from './Operator.vue';
 import Dialog from './Dialog.vue';
-import { Operator as Op } from './relation';
 import { Mode } from '@/model';
 
 @Component({
@@ -51,19 +53,28 @@ import { Mode } from '@/model';
   }
 })
 export default class Dag extends Vue {
-  public ops: Op[] = [new Op(), new Op(300)];
+  public ops: Op[] = [];
   @State('mode') public mode!: Mode;
   @Mutation('setMode') public setMode!: (mode: Mode) => void;
   public dialogVisible = false;
-  @Emit() public openDialog() {
+  private dialogOperator: Op | object = {};
+  @Emit() public openDialog(op: Op) {
     this.dialogVisible = true;
+    this.dialogOperator = op;
   }
   @Emit() public closeDialog() {
     this.dialogVisible = false;
+    this.dialogOperator = {};
+  }
+
+  @Emit() private handleSubmit() {
+    this.dialogVisible = false;
+    post('/api/add_operator', {});
   }
 
   @Emit() private noSelect() {
     this.ops.forEach(o => o.selected = false);
+    this.setSelectNone();
   }
 
   @Emit() private setSelectMode() {
@@ -77,7 +88,6 @@ export default class Dag extends Vue {
         if (event.selection) {
           brushGroup.call(b.move, null);
           self.selectOp(event.selection);
-          self.setSelectNone();
         }
       });
     brushGroup.call(b);
@@ -85,6 +95,11 @@ export default class Dag extends Vue {
 
   @Emit() private addOpertor() {
     this.setMode(Mode.ADD_OPERATOR);
+  }
+
+  @Emit() private submitResult() {
+    const data = computeResult(this.ops);
+    post('/api/change_dag', data).then(res => {});
   }
 
   @Emit() private handleSvgClick(e: MouseEvent) {
@@ -123,6 +138,9 @@ export default class Dag extends Vue {
 
   private mounted() {
     window.addEventListener('keyup', this.handleKeyUp);
+    get('/api/experimental/tasksources').then(res => {
+      // console.log(res);
+    });
   }
 
   private destoryed() {
@@ -160,6 +178,9 @@ export default class Dag extends Vue {
     .short {
       width: 120px;
       background-color: beige;
+      .sel-mode.active {
+        box-shadow: inset 0 0 2px 2px #666;
+      }
     }
     .draw {
       &::-webkit-scrollbar {

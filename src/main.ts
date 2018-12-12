@@ -2,6 +2,7 @@ import Vue from 'vue';
 import App from './App.vue';
 import store from './store';
 import {select, mouse, event} from 'd3-selection';
+import Input from './base/Input.vue';
 
 Vue.config.productionTip = false;
 
@@ -33,6 +34,7 @@ Vue.directive('drag', {
     });
   }
 });
+Vue.component('Input', Input);
 
 new Vue({
   store,
