@@ -13,7 +13,7 @@ export class Operator {
     constructor(public x = 0, public y = 0) {}
 
     public setData(config: OperatorData) {
-      this.task_id = config.task_id;
+      this.task_id = config.task_id || config.source_id;
       this.params = getParams(config.params);
       this.operator = config.operator;
     }
@@ -50,6 +50,7 @@ export interface OperatorDataParams {
 
 export interface OperatorData {
   task_id: string;
+  source_id: string;
   params: OperatorDataParams;
   operator: string;
 }
@@ -63,7 +64,13 @@ export const createOperator = (config: any, x: number = 0, y: number = 0) => {
 export const computeResult = (operators: Operator[]) => {
   const rst: {operators: any; dag_args: any; dependencies: string[]} = {
     operators: {},
-    dag_args: {},
+    dag_args: {
+      dag_id: 'dag_' + Math.random(),
+      default_args: {
+        owner: 'lfm'
+      },
+      start_date: '2018-11-12 15:26:00'
+    },
     dependencies: []
   };
   operators.forEach(operator => {

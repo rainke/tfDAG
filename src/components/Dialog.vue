@@ -16,16 +16,20 @@
                 </div>
               </div>
               <div class="form-group">
-                <span class="form-label">operator: </span> <span>{{operator.operator}}</span>
+                <span class="form-label">operator: </span>
+                <span class="form-value">{{operator.operator}}</span>
               </div>
               <div class="form-group">
-                <span class="form-label">method: </span> <span>{{operator.method}}</span>
+                <span class="form-label">method: </span>
+                <span class="form-value" v-if="operator.params">{{operator.params.method}}</span>
               </div>
               <div class="form-group">
-                <span class="form-label">path: </span> <span>{{operator.path}}</span>
+                <span class="form-label">path: </span>
+                <span class="form-value" v-if="operator.params">{{operator.params.path}}</span>
               </div>
               <div class="form-group">
-                <span class="form-label">token: </span> <span>{{operator.token}}</span>
+                <span class="form-label">token: </span>
+                <span class="form-value" v-if="operator.params">{{operator.params.token}}</span>
               </div>
             </div>
           </div>
@@ -137,11 +141,18 @@ export default class Dialog extends Vue {
         .form-group {
           display: flex;
           margin: 10px 20px;
-          .form-label {
+          .form-label,.form-value {
             width: 120px;
             text-align: right;
             padding: 0 10px;
             line-height: 30px;
+            color: #666;
+          }
+          .form-value {
+            text-align: left;
+            color: #333;
+            width: 300px;
+            word-break: break-all;
           }
           .error-message {
             color: red;

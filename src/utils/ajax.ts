@@ -10,6 +10,9 @@ export const request = function(url: string, config?: object) {
       alert(res.statusText);
       return Promise.reject(res);
     }
+  }, err => {
+    alert(err);
+    return Promise.reject(err);
   });
 };
 
