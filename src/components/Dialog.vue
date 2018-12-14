@@ -3,9 +3,9 @@
     <div class="dialog-container" v-show="visible">
       <transition name="slide-fade">
         <div class="dialog-content" v-show="visible">
-          <header>hello</header>
+          <header>{{title}}</header>
           <div class="dialog-body">
-            <div v-if="operator">
+            <!-- <div v-if="operator">
               <div class="form-group">
                 <label class="form-label">task_id: </label>
                 <div>
@@ -31,7 +31,8 @@
                 <span class="form-label">token: </span>
                 <span class="form-value" v-if="operator.params">{{operator.params.token}}</span>
               </div>
-            </div>
+            </div> -->
+            <slot></slot>
           </div>
           <footer>
               <button @click="handleSubmit">确认</button>
@@ -48,30 +49,17 @@ import { Operator } from '@/components/relation';
 
 @Component
 export default class Dialog extends Vue {
-  @Prop({default: false}) public readonly visible!: boolean;
-  @Prop() public operator!: Operator;
-  private errorMessage: string = '';
+  @Prop({default: false}) private readonly visible!: boolean;
+  @Prop({default: ''}) private readonly title!: string;
+  // @Prop() public operator!: Operator;
+  // private errorMessage: string = '';
 
   @Emit() private close() {
     this.$emit('close');
   }
 
   @Emit() private handleSubmit() {
-    if (!this.errorMessage) {
-      this.$emit('submit');
-    }
-  }
-
-  @Emit() private checkValid() {
-    if (!this.operator.task_id) {
-      this.errorMessage = 'task_id不能为空';
-    } else {
-      if (!this.operator.task_id.match(/^[a-zA-z][\w\.]*$/)) {
-        this.errorMessage = '非法task_id';
-      } else {
-        this.errorMessage = '';
-      }
-    }
+    this.$emit('submit');
   }
 
   @Watch('visible') private onVisibleChange(v: boolean, ov: boolean) {

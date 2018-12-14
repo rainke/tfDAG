@@ -1,3 +1,5 @@
+import { Message } from 'element-ui';
+
 export const request = function(url: string, config?: object) {
   return fetch(url, config).then(res => {
     if (res.status === 200) {
@@ -7,11 +9,11 @@ export const request = function(url: string, config?: object) {
         return res.text();
       }
     } else {
-      alert(res.statusText);
+      Message(res.statusText);
       return Promise.reject(res);
     }
   }, err => {
-    alert(err);
+    Message(err);
     return Promise.reject(err);
   });
 };
@@ -29,7 +31,7 @@ export const get = (url: string, data: ParamsInterface = {params: {}}) => {
   return request(buildURL(url, params));
 };
 
-export const post = (url: string, data: object) => {
+export const post = (url: string, data: object = {}) => {
   return request(url, {
     method: 'POST',
     body: JSON.stringify(data)

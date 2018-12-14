@@ -65,7 +65,7 @@ export const computeResult = (operators: Operator[]) => {
   const rst: {operators: any; dag_args: any; dependencies: string[]} = {
     operators: {},
     dag_args: {
-      dag_id: 'dag_' + Math.random(),
+      dag_id: 'dag_' + Date.now(),
       default_args: {
         owner: 'lfm'
       },

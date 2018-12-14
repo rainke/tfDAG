@@ -6,6 +6,30 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title>tfDAG</title>
+    <script>
+      var globalConfig = [
+          {
+              "op_path": "airflow.contrib.operators.datasocket_operator.DataSourceOperator",
+              "op_style": "",
+              "op_type": "datasocketoperator",
+              "op_parmas": [
+                  "host",
+                  "port",
+                  "token",
+                  "path",
+                  "method"
+              ]
+          },
+          {
+              "op_path": "airflow.operators.bash_operator.BashOperator",
+              "op_style": "",
+              "op_type": "bashoperator",
+              "op_parmas": [
+                  "bash_command"
+              ]
+          }
+      ]
+    </script>
   </head>
   <body>
     <noscript>

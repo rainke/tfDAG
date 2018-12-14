@@ -1,9 +1,9 @@
 <template>
   <div id="dag">
     <div class="tool">
-      <Button class="sel-mode" :class="{active: mode === 1}" @click="setSelectMode">选择</Button>
-      <Button class="esc" @click="noSelect">取消选择</Button>
-      <Button class="add-mode" @click="submitResult">提交</Button>
+      <ElButton :type="mode===1 ? 'primary': ''" :class="{active: mode === 1}" @click="setSelectMode">选择</ElButton>
+      <ElButton class="esc" @click="noSelect">取消选择</ElButton>
+      <ElButton class="add-mode" @click="submitResult">提交</ElButton>
     </div>
     <div class="design">
       <div class="short">
@@ -13,6 +13,9 @@
           @dragend="handleSourceDragend($event)"
         >
           {{source.source_id}}
+        </div>
+        <div class="add-operator">
+          <ElButton @click="openAddDialog">添加</ElButton>
         </div>
       </div>
       <div class="draw">
@@ -38,7 +41,73 @@
             <g class="brush-group"></g>
             <g class="link-group"></g>
           </svg>
-          <Dialog :visible="dialogVisible" :operator="dialogOperator" @close="closeDialog" @submit="handleSubmit"/>
+          <Dialog :visible="dialogVisible" :title="dialogOperator ? dialogOperator.task_id: ''" @close="closeDialog" @submit="handleSubmit">
+            <div v-if="dialogOperator">
+              <div class="form-group">
+                <label class="form-label">task_id: </label>
+                <div>
+                  <div>
+                    <ElInput v-model="dialogOperator.task_id" @input="checkValid"/>
+                  </div>
+                  <div class="error-message">{{errorMessage}}</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <span class="form-label">operator: </span>
+                <span class="form-value">{{dialogOperator.operator}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">method: </span>
+                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.method}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">path: </span>
+                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.path}}</span>
+              </div>
+              <div class="form-group">
+                <span class="form-label">token: </span>
+                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.token}}</span>
+              </div>
+            </div>
+          </Dialog>
+          <Dialog :visible.sync="addVisible" title="添加TaskSource" @close="closeAddDialog" @submit="addTasksource">
+            <form name="addform" v-if="willBeAddTaskSource">
+              <!-- <div class="form-group">
+                <label class="form-label">task_id: </label>
+                <div>
+                  <div>
+                    <ElInput v-model="willBeAddTaskSource.task_id" />
+                  </div>
+                </div>
+              </div> -->
+              <div class="form-group">
+                <span class="form-label">operator: </span>
+                <div>
+                  <div>
+                    <ElSelect v-model="willBeAddTaskSource.op_type" >
+                      <el-option
+                        v-for="item in globalConfig"
+                        :key="item.op_type"
+                        :label="item.op_type"
+                        :value="item.op_type">
+                      </el-option>
+                    </ElSelect>
+                  </div>
+                </div>
+              </div>
+              <div v-for="p in addParams" :key="p">
+                <div class="form-group">
+                  <span class="form-label">{{p}}: </span>
+                  <div>
+                    <div>
+                      <ElInput v-model="willBeAddTaskSource[p]" />
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </form>
+          </Dialog>
         </div>
       </div>
     </div>
@@ -56,6 +125,7 @@ import Operator from './Operator.vue';
 import Dialog from './Dialog.vue';
 import { Mode } from '@/model';
 
+
 @Component({
   components: {
     Operator,
@@ -68,21 +138,56 @@ export default class Dag extends Vue {
   private dragSource: OperatorData|null = null;
   private dragOperator: Op|null = null;
   private sources: OperatorData[] = [];
+  private dialogVisible = false;
+  private dialogOperator: Op|null = null;
+  private errorMessage: string = '';
+  private addVisible = false;
+  private willBeAddTaskSource: any = null;
+  // @ts-ignore
+  private globalConfig: any[] = globalConfig;
   @State('mode') private mode!: Mode;
   @Mutation('setMode') private setMode!: (mode: Mode) => void;
-  private dialogVisible = false;
-  private dialogOperator: Op | object = {};
+
+  get addParams() {
+    if (this.willBeAddTaskSource) {
+      const f = this.globalConfig.filter((o: any) => o.op_type === this.willBeAddTaskSource.op_type);
+      if (f.length) {
+        return f[0].op_parmas;
+      } else {
+        return [];
+      }
+    } else {
+      return [];
+    }
+  }
+
   @Emit() public openDialog(op: Op) {
     this.dialogVisible = true;
     this.dialogOperator = op;
   }
   @Emit() public closeDialog() {
     this.dialogVisible = false;
-    this.dialogOperator = {};
+    this.dialogOperator = null;
+  }
+
+  @Emit() private checkValid() {
+    if (this.dialogOperator) {
+      if (!this.dialogOperator.task_id) {
+        this.errorMessage = 'task_id不能为空';
+      } else {
+        if (!this.dialogOperator.task_id.match(/^[a-zA-z][\w\.]*$/)) {
+          this.errorMessage = '非法task_id';
+        } else {
+          this.errorMessage = '';
+        }
+      }
+    }
   }
 
   @Emit() private handleSubmit() {
-    this.dialogVisible = false;
+    if (!this.errorMessage) {
+      this.dialogVisible = false;
+    }
   }
 
   @Emit() private handleSourceDragover() {}
@@ -121,9 +226,7 @@ export default class Dag extends Vue {
     }
   }
 
-  @Emit() private handleDrop(e: DragEvent) {
-
-  }
+  @Emit() private handleDrop(e: DragEvent) {}
 
   @Emit() private noSelect() {
     this.ops.forEach(o => o.selected = false);
@@ -146,13 +249,31 @@ export default class Dag extends Vue {
     brushGroup.call(b);
   }
 
-  @Emit() private addOpertor() {
-    this.setMode(Mode.ADD_OPERATOR);
+  @Emit() private openAddDialog() {
+    // this.setMode(Mode.ADD_OPERATOR);
+    this.willBeAddTaskSource = {};
+    this.addVisible = true;
+  }
+
+  @Emit() private closeAddDialog() {
+    this.willBeAddTaskSource = null;
+    this.addVisible = false;
+  }
+  @Emit() private addTasksource() {
+    post('/api/experimental/tasksources/create', this.willBeAddTaskSource).then((res: any) => {
+      if (res.status === 0) {
+        this.closeAddDialog();
+      } else {
+        this.$message(res.msg);
+      }
+    }, (error: any) => {
+      this.$message(error);
+    });
   }
 
   @Emit() private submitResult() {
     if (!this.ops.length) {
-      return alert('没有operator');
+      return this.$message('没有operator');
     }
     const data = computeResult(this.ops);
     post('/api/experimental/dags/create_dagfile', data).then(({status, msg}) => {
@@ -301,6 +422,31 @@ export default class Dag extends Vue {
             cursor: crosshair;
           }
         }
+      }
+    }
+  }
+}
+.dialog-content {
+  .dialog-body {
+    .form-group {
+      display: flex;
+      margin: 10px 20px;
+      .form-label,.form-value {
+        width: 120px;
+        text-align: right;
+        padding: 0 10px;
+        line-height: 30px;
+        color: #666;
+      }
+      .form-value {
+        text-align: left;
+        color: #333;
+        width: 300px;
+        word-break: break-all;
+      }
+      .error-message {
+        color: red;
+        margin-top: 5px;
       }
     }
   }

@@ -1,9 +1,10 @@
 import Vue from 'vue';
 import App from './App.vue';
 import store from './store';
-import {select, mouse, event} from 'd3-selection';
-import Input from './base/Input.vue';
-import Button from './base/Button.vue';
+import {select, mouse} from 'd3-selection';
+// import Input from './base/Input.vue';
+// import Button from './base/Button.vue';
+import { Button, Input, ColorPicker, Message, Select, Option } from 'element-ui';
 
 Vue.config.productionTip = false;
 
@@ -35,8 +36,12 @@ Vue.directive('drag', {
     });
   }
 });
-Vue.component('Input', Input);
-Vue.component('Button', Button);
+Vue.component(Input.name, Input);
+Vue.component(Button.name, Button);
+Vue.component(ColorPicker.name, ColorPicker);
+Vue.component(Select.name, Select);
+Vue.component(Option.name, Option);
+Vue.prototype.$message = Message;
 
 new Vue({
   store,
