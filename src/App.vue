@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="main_content">
     <Dag />
   </div>
 </template>
@@ -21,7 +21,7 @@ html, body  {
   margin: 0;
   height: 100%;
 }
-#app {
+#main_content {
   height: 100%;
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

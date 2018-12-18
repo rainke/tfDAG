@@ -1,8 +1,14 @@
 <template>
   <g class="operator" v-drag="drag" @mouseup="end">
-    <rect class="main-rect" :class="{selected: op.selected}" @dblclick="openDialog" @click="selectOp($event)" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
+    <rect class="main-rect" :class="{selected: op.selected}" @click="selectOp($event)" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
     <rect class="linkdot" :x="x-5" :y="y+45" width="10" height="10" fill="none"></rect>
     <rect class="linkdot" @mousedown="startDraw($event)" :x="x+95" :y="y+45" width="10" height="10" fill="none"></rect>
+    <text v-maxlength="70" class="text-task" :x="x + 10" :y="y+25" :fill="op.task_id ? 'blue': 'red'">任务ID:{{op.task_id}}</text>
+    <text class="ghost ghost-task" :x="x + 10" :y="y+25" :fill="op.task_id ? 'blue': 'red'">任务ID:{{op.task_id}}</text>
+    <text v-maxlength="70" class="text-source" :x="x + 10" :y="y+50" fill="blue">源ID:{{op.source_id}}</text>
+    <text  class="ghost ghost-source" :x="x + 10" :y="y+50" fill="blue">源ID:{{op.source_id}}</text>
+    <rect class="detail" @click="openDialog" :x="x+10" :y="y+60" width="80" height="30" rx="5" ry="5"></rect>
+    <text class="detail-text" :x="x+50" :y="y+75" fill="black" width="80" height="30" dominant-baseline="middle" text-anchor="middle">详情</text>
     <line v-if="isMouseDown" :x1="x+100" :y1="y+50" :x2="drawTo.x" :y2="drawTo.y" stroke="red" marker-end="url(#arrow)"></line>
     <line
       class="linkline"
@@ -27,6 +33,17 @@ import {select, mouse} from 'd3-selection';
 import {Mode} from '@/model';
 import {Operator as op} from './relation';
 import Dialog from './Dialog.vue';
+
+function wrap(this: any) {
+  const self = select(this);
+  let textLength = self.node().getComputedTextLength();
+  let text = self.text();
+  while (textLength > (80) && text.length > 0) {
+    text = text.slice(0, -1);
+    self.text(text + '...');
+    textLength = self.node().getComputedTextLength();
+  }
+}
 
 @Component({
   components: {
@@ -128,5 +145,48 @@ export default class Operator extends Vue {
   &.selected {
     fill: blue;
   }
+}
+
+.detail {
+  fill:antiquewhite;
+  opacity: .5;
+  cursor: pointer;
+  &:hover {
+    opacity: .3;
+  }
+}
+
+.detail-text {
+  // cursor: pointer;
+  pointer-events: none;
+  // &:hover {
+  //   opacity: .7;
+  // }
+}
+
+text {
+  user-select: none;
+}
+
+.text-task {
+  // pointer-events: hover;
+  &:hover {
+    fill: transparent;
+    & + .ghost-task {
+      display: unset;
+    }
+  }
+}
+.text-source {
+  fill: transparent;
+  &:hover {
+    & + .ghost-source {
+      display: unset;
+    }
+  }
+}
+.ghost {
+  display: none;
+  pointer-events: none;
 }
 </style>

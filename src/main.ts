@@ -5,6 +5,7 @@ import {select, mouse} from 'd3-selection';
 // import Input from './base/Input.vue';
 // import Button from './base/Button.vue';
 import { Button, Input, ColorPicker, Message, Select, Option } from 'element-ui';
+import './directives/maxlength';
 
 Vue.config.productionTip = false;
 
@@ -36,6 +37,8 @@ Vue.directive('drag', {
     });
   }
 });
+
+
 Vue.component(Input.name, Input);
 Vue.component(Button.name, Button);
 Vue.component(ColorPicker.name, ColorPicker);
@@ -46,4 +49,4 @@ Vue.prototype.$message = Message;
 new Vue({
   store,
   render: (h) => h(App),
-}).$mount('#app');
+}).$mount('#main_content');

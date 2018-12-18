@@ -7,15 +7,21 @@
     </div>
     <div class="design">
       <div class="short">
-        <div class="source-item" draggable="true" v-for="source in sources" :key="source.source_id"
-          @dragover.prevent="handleSourceDragover"
-          @dragstart="handleSourceDragstart(source)"
-          @dragend="handleSourceDragend($event)"
-        >
-          {{source.source_id}}
+        <div class="task-sources">
+          <div>tasksources</div>
+          <div class="source-item" draggable="true" v-for="source in sources" :key="source.source_id"
+            @dragover.prevent="handleSourceDragover"
+            @dragstart="handleSourceDragstart(source)"
+            @dragend="handleSourceDragend($event)"
+          >
+            <span>{{source.source_id}}</span> <a href="javascript:;">x</a>
+          </div>
+          <div class="add-operator">
+            <ElButton size="small" @click="openAddDialog">添加</ElButton>
+          </div>
         </div>
-        <div class="add-operator">
-          <ElButton @click="openAddDialog">添加</ElButton>
+        <div class="dag-list-container">
+          <DagList />
         </div>
       </div>
       <div class="draw">
@@ -34,6 +40,9 @@
               <marker id="arrow" markerWidth="10" markerHeight="6" refY="3" refX="10" orient="auto">
                 <path d="M0,0 L10,3 L0,6 z"></path>
               </marker>
+              <clipPath id="round-corner">
+                <rect x="0" y="0" width="80" height="30" rx="5" ry="5"/>
+              </clipPath>
             </defs>
             <g class="main-group">
               <Operator @open="openDialog" v-for="o in ops" :key="o.id" :x="o.x" :op="o" />
@@ -56,30 +65,22 @@
                 <span class="form-label">operator: </span>
                 <span class="form-value">{{dialogOperator.operator}}</span>
               </div>
-              <div class="form-group">
-                <span class="form-label">method: </span>
-                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.method}}</span>
-              </div>
-              <div class="form-group">
-                <span class="form-label">path: </span>
-                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.path}}</span>
-              </div>
-              <div class="form-group">
-                <span class="form-label">token: </span>
-                <span class="form-value" v-if="dialogOperator.params">{{dialogOperator.params.token}}</span>
+              <div class="form-group" v-for="(value, key) in dialogOperator.params" :key="key">
+                <span class="form-label">{{key}}: </span>
+                <span class="form-value">{{value}}</span>
               </div>
             </div>
           </Dialog>
           <Dialog :visible.sync="addVisible" title="添加TaskSource" @close="closeAddDialog" @submit="addTasksource">
             <form name="addform" v-if="willBeAddTaskSource">
-              <!-- <div class="form-group">
-                <label class="form-label">task_id: </label>
+              <div class="form-group">
+                <label class="form-label">source_id: </label>
                 <div>
                   <div>
-                    <ElInput v-model="willBeAddTaskSource.task_id" />
+                    <ElInput v-model="willBeAddTaskSource.source_id" />
                   </div>
                 </div>
-              </div> -->
+              </div>
               <div class="form-group">
                 <span class="form-label">operator: </span>
                 <div>
@@ -102,12 +103,24 @@
                     <div>
                       <ElInput v-model="willBeAddTaskSource[p]" />
                     </div>
-
                   </div>
                 </div>
               </div>
             </form>
           </Dialog>
+        </div>
+      </div>
+      <div class="dag-info">
+        <div class="toggle-show">
+          <a href="javascript:;" @click="hideDagInfo=!hideDagInfo">{{hideDagInfo ? '<' : '>'}}</a>
+        </div>
+        <div class="info" v-if="!hideDagInfo">
+          <label for="">owner:</label>
+          <div><input type="text" v-model="dagInfo.default_args.owner"></div>
+          <label for="">dag_id:</label>
+          <div><input type="text" v-model="dagInfo.dag_id"></div>
+          <label for="">开始日期: {{dagInfo.start_date}}</label>
+          <div><input type="datetime-local" v-model="dagInfo.start_date"></div>
         </div>
       </div>
     </div>
@@ -120,8 +133,10 @@ import { State, Mutation } from 'vuex-class';
 import { brush } from 'd3-brush';
 import { select, event, mouse } from 'd3-selection';
 import {get, post} from '@/utils/ajax';
+import { delTaskSource } from '@/api';
 import { Operator as Op, computeResult, OperatorData } from './relation';
 import Operator from './Operator.vue';
+import DagList from './DagList.vue';
 import Dialog from './Dialog.vue';
 import { Mode } from '@/model';
 
@@ -129,7 +144,8 @@ import { Mode } from '@/model';
 @Component({
   components: {
     Operator,
-    Dialog
+    Dialog,
+    DagList
   }
 })
 export default class Dag extends Vue {
@@ -143,8 +159,15 @@ export default class Dag extends Vue {
   private errorMessage: string = '';
   private addVisible = false;
   private willBeAddTaskSource: any = null;
-  // @ts-ignore
-  private globalConfig: any[] = globalConfig;
+  private globalConfig = globalConfig;
+  private dagInfo = {
+    dag_id: '',
+    default_args: {
+      owner: ''
+    },
+    start_date: ''
+  };
+  private hideDagInfo = true;
   @State('mode') private mode!: Mode;
   @Mutation('setMode') private setMode!: (mode: Mode) => void;
 
@@ -152,7 +175,7 @@ export default class Dag extends Vue {
     if (this.willBeAddTaskSource) {
       const f = this.globalConfig.filter((o: any) => o.op_type === this.willBeAddTaskSource.op_type);
       if (f.length) {
-        return f[0].op_parmas;
+        return f[0].op_parmas || f[0].op_params;
       } else {
         return [];
       }
@@ -161,11 +184,24 @@ export default class Dag extends Vue {
     }
   }
 
-  @Emit() public openDialog(op: Op) {
+  // get OpParams() {
+  //   if (this.dialogOperator) {
+  //     const config = this.globalConfig.find(item => item.op_path === this.dialogOperator.operator);
+  //     if (config) {
+  //       return config.op_parmas || config.op_params;
+  //     } else {
+  //       return [];
+  //     }
+  //   } else {
+  //     return [];
+  //   }
+  // }
+
+  @Emit() private openDialog(op: Op) {
     this.dialogVisible = true;
     this.dialogOperator = op;
   }
-  @Emit() public closeDialog() {
+  @Emit() private closeDialog() {
     this.dialogVisible = false;
     this.dialogOperator = null;
   }
@@ -205,6 +241,7 @@ export default class Dag extends Vue {
         this.ops.splice(idx, 1);
       }
     }
+    this.dragOperator && this.openDialog(this.dragOperator);
     this.dragSource = null;
     this.dragOperator = null;
   }
@@ -260,14 +297,42 @@ export default class Dag extends Vue {
     this.addVisible = false;
   }
   @Emit() private addTasksource() {
-    post('/api/experimental/tasksources/create', this.willBeAddTaskSource).then((res: any) => {
+    if (!this.willBeAddTaskSource.source_id || !this.willBeAddTaskSource.op_type) {
+      this.$message.error('请填写id或operator');
+      return;
+    }
+    const data = {
+      op_type: this.willBeAddTaskSource.op_type,
+      source_id: this.willBeAddTaskSource.source_id,
+      operator_path: '',
+      operator_params: {} as any
+    };
+    const paramsObj = {} as any;
+    const config = this.globalConfig.find(item => item.op_type === data.op_type);
+    if (config) {
+      data.operator_path = config.op_path;
+      const params = config.op_params || config.op_parmas;
+      for (const param of params as any) {
+        paramsObj[param] = this.willBeAddTaskSource[param];
+        if (!paramsObj[param]) {
+          this.$message('请填写' + param);
+          return;
+        }
+      }
+      // params && params.forEach(param => {
+      //   paramsObj[param] = this.willBeAddTaskSource[param];
+      // });
+      data.operator_params = paramsObj;
+    }
+    post('/api/experimental/tasksources/create', data).then((res: any) => {
       if (res.status === 0) {
         this.closeAddDialog();
+        this.getTaskSource();
       } else {
         this.$message(res.msg);
       }
     }, (error: any) => {
-      this.$message(error);
+      // this.$message(error);
     });
   }
 
@@ -275,7 +340,24 @@ export default class Dag extends Vue {
     if (!this.ops.length) {
       return this.$message('没有operator');
     }
-    const data = computeResult(this.ops);
+    if (this.ops.some(op => !op.task_id)) {
+      return this.$message('请填写任务id');
+    }
+    const taskIds = this.ops.map(op => op.task_id);
+    if (new Set(taskIds).size !== taskIds.length) {
+        return this.$message('任务id不能重复');
+    }
+    if (!this.dagInfo.dag_id) {
+      return this.$message('请填写dag_id');
+    }
+    if (!this.dagInfo.default_args.owner) {
+      return this.$message('请填写owner');
+    }
+    if (!this.dagInfo.start_date) {
+      return this.$message('请填写开始时间');
+    }
+
+    const data = computeResult(this.ops, this.dagInfo);
     post('/api/experimental/dags/create_dagfile', data).then(({status, msg}) => {
       if (status === 0) {
         alert('修改成功');
@@ -322,16 +404,16 @@ export default class Dag extends Vue {
 
   private mounted() {
     window.addEventListener('keyup', this.handleKeyUp);
+    this.getTaskSource();
+  }
+
+  private getTaskSource() {
     get('/api/experimental/tasksources').then(res => {
-      // let index = 0;
+      const sources = [];
       for (const [key, value] of Object.entries(res)) {
-        // const x = index * 200;
-        // index++;
-        // const operator = new Op(x);
-        // operator.setData(value as OperatorData);
-        // this.ops.push(operator);
-        this.sources.push(value as OperatorData);
+        sources.push(value as OperatorData);
       }
+      this.sources = sources;
     });
   }
 
@@ -365,8 +447,9 @@ export default class Dag extends Vue {
   }
   .design {
     display: flex;
+    position: relative;
     flex: 1;
-    overflow: hidden;
+    // overflow: hidden;
     .short {
       width: 120px;
       background-color: beige;
@@ -379,6 +462,11 @@ export default class Dag extends Vue {
         color: #fff;
         cursor: move;
         border-bottom: 1px solid pink;
+        overflow: hidden;
+        white-space: nowrap;
+        a {
+          text-decoration: none;
+        }
       }
     }
     .draw {
@@ -422,6 +510,31 @@ export default class Dag extends Vue {
             cursor: crosshair;
           }
         }
+      }
+    }
+    .dag-info {
+      
+      padding: 10px 0;
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: flex;
+      .toggle-show {
+        width: 20px;
+        a {
+          background: #666;
+          text-decoration: none;
+          display: block;
+          line-height: 30px;
+          color:#eee;
+        }
+      }
+      .info {
+        text-align: left;
+        padding: 10px;
+        flex:1;
+        background: #fff;
+        box-shadow: 2px 3px 3px 0px #666;
       }
     }
   }

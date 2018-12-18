@@ -9,11 +9,12 @@ export class Operator {
     public task_id = '';
     public params!: OperatorDataParams;
     public operator!: string;
+    public source_id!: string;
 
     constructor(public x = 0, public y = 0) {}
 
     public setData(config: OperatorData) {
-      this.task_id = config.task_id || config.source_id;
+      this.source_id = config.task_id || config.source_id;
       this.params = getParams(config.params);
       this.operator = config.operator;
     }
@@ -61,15 +62,13 @@ export const createOperator = (config: any, x: number = 0, y: number = 0) => {
   return operator;
 };
 
-export const computeResult = (operators: Operator[]) => {
+export const computeResult = (operators: Operator[], dag_args: any) => {
   const rst: {operators: any; dag_args: any; dependencies: string[]} = {
     operators: {},
     dag_args: {
-      dag_id: 'dag_' + Date.now(),
-      default_args: {
-        owner: 'lfm'
-      },
-      start_date: '2018-11-12 15:26:00'
+      dag_id: dag_args.dag_id,
+      default_args: dag_args.default_args,
+      start_date: dag_args.start_date.replace('T', ' ')
     },
     dependencies: []
   };
@@ -81,6 +80,22 @@ export const computeResult = (operators: Operator[]) => {
   });
 
   return rst;
+};
+
+export interface Dag {
+  operators: {};
+  dag_args: {
+    dag_id: string;
+    default_args: {
+      owner: string;
+    };
+    start_date: string;
+  };
+  dependencies: string[];
+}
+
+export const createDags = (dag: Dag) => {
+
 };
 
 export const tasksource = {

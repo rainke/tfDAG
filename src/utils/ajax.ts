@@ -34,7 +34,16 @@ export const get = (url: string, data: ParamsInterface = {params: {}}) => {
 export const post = (url: string, data: object = {}) => {
   return request(url, {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
+  });
+};
+
+export const del = (url: string) => {
+  return request(url, {
+    method: 'DELETE'
   });
 };
 

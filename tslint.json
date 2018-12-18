@@ -20,6 +20,7 @@
     "only-arrow-functions": false,
     "no-unused-expression": [true, "allow-fast-null-checks"],
     "no-empty": false,
-    "variable-name": false
+    "variable-name": false,
+    "no-namespace": false
   }
 }
