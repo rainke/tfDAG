@@ -178,8 +178,8 @@ text {
   }
 }
 .text-source {
-  fill: transparent;
   &:hover {
+    fill: transparent;
     & + .ghost-source {
       display: unset;
     }

@@ -82,22 +82,6 @@ export const computeResult = (operators: Operator[], dag_args: any) => {
   return rst;
 };
 
-export interface Dag {
-  operators: {};
-  dag_args: {
-    dag_id: string;
-    default_args: {
-      owner: string;
-    };
-    start_date: string;
-  };
-  dependencies: string[];
-}
-
-export const createDags = (dag: Dag) => {
-
-};
-
 export const tasksource = {
     extra: 'task_id="test-datasocket"',
     is_Enabled: true,

@@ -14,7 +14,8 @@
             @dragstart="handleSourceDragstart(source)"
             @dragend="handleSourceDragend($event)"
           >
-            <span>{{source.source_id}}</span> <a href="javascript:;">x</a>
+            <span>{{source.source_id}}</span>
+            <a href="javascript:;" @click="delTaskSource(source.source_id)">x</a>
           </div>
           <div class="add-operator">
             <ElButton size="small" @click="openAddDialog">添加</ElButton>
@@ -112,7 +113,7 @@
       </div>
       <div class="dag-info">
         <div class="toggle-show">
-          <a href="javascript:;" @click="hideDagInfo=!hideDagInfo">{{hideDagInfo ? '<' : '>'}}</a>
+          <a href="javascript:;" @click="hideDagInfo=!hideDagInfo">{{hideDagInfo ? '&lt;' : '&gt;'}}</a>
         </div>
         <div class="info" v-if="!hideDagInfo">
           <label for="">owner:</label>
@@ -167,7 +168,7 @@ export default class Dag extends Vue {
     },
     start_date: ''
   };
-  private hideDagInfo = true;
+  private hideDagInfo = false;
   @State('mode') private mode!: Mode;
   @Mutation('setMode') private setMode!: (mode: Mode) => void;
 
@@ -183,19 +184,6 @@ export default class Dag extends Vue {
       return [];
     }
   }
-
-  // get OpParams() {
-  //   if (this.dialogOperator) {
-  //     const config = this.globalConfig.find(item => item.op_path === this.dialogOperator.operator);
-  //     if (config) {
-  //       return config.op_parmas || config.op_params;
-  //     } else {
-  //       return [];
-  //     }
-  //   } else {
-  //     return [];
-  //   }
-  // }
 
   @Emit() private openDialog(op: Op) {
     this.dialogVisible = true;
@@ -337,6 +325,7 @@ export default class Dag extends Vue {
   }
 
   @Emit() private submitResult() {
+    this.hideDagInfo = false;
     if (!this.ops.length) {
       return this.$message('没有operator');
     }
@@ -366,6 +355,23 @@ export default class Dag extends Vue {
       }
     });
     // get('/api/experimental/dags/create_dagfile', {params: data}).then(res => {});
+  }
+
+  @Emit() private delTaskSource(id: string)  {
+    this.$confirm('是否删除该task_source?', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      delTaskSource(id).then(({status, msg}) => {
+        if (status === 0) {
+          this.$message.success('删除成功');
+          this.getTaskSource();
+        } else {
+          this.$message.warning('msg');
+        }
+      });
+    });
   }
 
   @Emit() private handleSvgClick(e: MouseEvent) {
@@ -451,7 +457,8 @@ export default class Dag extends Vue {
     flex: 1;
     // overflow: hidden;
     .short {
-      width: 120px;
+      @short-width: 130px;
+      width: @short-width;
       background-color: beige;
       .sel-mode.active {
         box-shadow: inset 0 0 2px 2px #666;
@@ -464,8 +471,18 @@ export default class Dag extends Vue {
         border-bottom: 1px solid pink;
         overflow: hidden;
         white-space: nowrap;
+        display: flex;
+        span {
+          width: @short-width * 0.9;
+        }
         a {
+          width: @short-width * 0.1;
+          background: #c00;
+          color: #fff;
           text-decoration: none;
+          &:hover {
+            background-color: #e00;
+          }
         }
       }
     }

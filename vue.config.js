@@ -1,6 +1,6 @@
 
 const config = {
-    baseUrl:'/editdag/',
+    // baseUrl:'/editdag/',
     devServer: {
         proxy: {
             '/api': {
