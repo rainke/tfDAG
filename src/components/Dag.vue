@@ -11,7 +11,7 @@
           <div>tasksources</div>
           <div class="source-item" draggable="true" v-for="source in sources" :key="source.source_id"
             @dragover.prevent="handleSourceDragover"
-            @dragstart="handleSourceDragstart(source)"
+            @dragstart="handleSourceDragstart(source, $event)"
             @dragend="handleSourceDragend($event)"
           >
             <span>{{source.source_id}}</span>
@@ -219,7 +219,7 @@ export default class DagComp extends Vue {
   }
 
   @Emit() private selectDag(dag: Dag) {
-    this.$confirm('确定覆盖正在编辑的dag吗?', '警告', {
+    this.$confirm('确定覆盖正在编辑的任务流吗?', '警告', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
@@ -250,9 +250,10 @@ export default class DagComp extends Vue {
 
   @Emit() private handleSourceDragover() {}
 
-  @Emit() private handleSourceDragstart(source: OperatorData) {
+  @Emit() private handleSourceDragstart(source: OperatorData, e: DragEvent) {
     this.drag = true;
     this.dragSource = source;
+    e.dataTransfer && e.dataTransfer.setData('drag', source.task_id);
   }
   @Emit() private handleSourceDragend(e: DragEvent) {
     this.drag = false;
@@ -270,6 +271,8 @@ export default class DagComp extends Vue {
 
   @Emit() private handleSvgDragenter(e: DragEvent) {
     // const svg = (this.$refs.svg as Element).getBoundingClientRect();
+    // console.log(this.ops);
+    // console.log(e.relatedTarget === e.target);
     if (!this.dragOperator && this.dragSource) {
       const operator = new Op(e.offsetX, e.offsetY);
       operator.setData(this.dragSource);
@@ -279,7 +282,8 @@ export default class DagComp extends Vue {
   }
 
   @Emit() private handleSvgDragover(e: DragEvent) {
-    if (this.dragOperator) {
+    // console.log(e);
+    if (this.dragOperator && e.offsetX) {
       this.dragOperator.x = e.offsetX;
       this.dragOperator.y = e.offsetY;
     }

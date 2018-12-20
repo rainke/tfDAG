@@ -1,5 +1,6 @@
 import { Operator, OperatorDataParams } from '../components/relation';
-import {forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, ForceLink} from 'd3-force';
+// import {forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, ForceLink} from 'd3-force';
+import dagreD3 from 'dagre-d3';
 
 export interface Dag {
   operators: {
@@ -23,16 +24,34 @@ export interface Dag {
 
 const computLocation = (nodes: any[], edges: any[]) => {
   return new Promise<any[]>(resolve => {
-    const force = forceSimulation()
-      .force('link', forceLink())
-      .force('change', forceManyBody())
-      .force('center', forceCenter(200, 200))
-      .force('collide', forceCollide(100));
+    // const force = forceSimulation()
+    //   .force('link', forceLink())
+    //   .force('change', forceManyBody())
+    //   .force('center', forceCenter(200, 200))
+    //   .force('collide', forceCollide(100));
 
-    force.nodes(nodes).on('end', function() {
-      resolve(nodes);
+    // force.nodes(nodes).on('end', function() {
+    //   resolve(nodes);
+    // });
+    // (force.force('link') as ForceLink<any, any>).links(edges).distance(100);
+    const g = new dagreD3.graphlib.Graph()
+    .setGraph({
+        rankdir: 'LR'
+    })
+    .setDefaultEdgeLabel(function() { return {}; });
+    nodes.forEach(node => {
+      console.log(node);
+      g.setNode(node.task_id,  { width: 100, height: 100, label: node.task_id});
     });
-    (force.force('link') as ForceLink<any, any>).links(edges).distance(100);
+    edges.forEach(edge => {
+      console.log(edge);
+      g.setEdge(edge.source, edge.target);
+    });
+    const rst = g.nodes().map(v => g.node(v));
+    // @ts-ignore
+    dagreD3.dagre.layout(g);
+    console.log(rst);
+    resolve(rst);
   });
 };
 
@@ -57,9 +76,8 @@ const convertDag = async (dag: Dag) => {
       const next = ops.findIndex(op => op.task_id === taskIdNext);
       ops[prev].next.push(ops[next]);
       edges.push({
-        source: prev,
-        target: next,
-        value: 1
+        source: taskIdPrev,
+        target: taskIdNext
       });
     }
   });

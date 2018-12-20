@@ -1,3 +1,5 @@
+// import 'whatwg-fetch';
+// import 'url-search-params-polyfill';
 import Vue from 'vue';
 import App from './App.vue';
 import store from './store';
