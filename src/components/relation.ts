@@ -1,6 +1,7 @@
 let id = 0;
 export class Operator {
     public next: Operator[] = [];
+    public prev: Operator[] = [];
     public selected = false; // 是否选中
     public id = id++;
     public width = 100;
@@ -14,7 +15,8 @@ export class Operator {
     constructor(public x = 0, public y = 0) {}
 
     public setData(config: OperatorData) {
-      this.source_id = config.task_id || config.source_id;
+      this.source_id = config.source_id;
+      this.task_id = config.task_id;
       this.params = getParams(config.params);
       this.operator = config.operator;
     }
@@ -23,7 +25,8 @@ export class Operator {
       return {
         task_id: this.task_id,
         params: this.params,
-        operator: this.operator
+        operator: this.operator,
+        source_id: this.source_id
       };
     }
 }
@@ -68,7 +71,8 @@ export const computeResult = (operators: Operator[], dag_args: any) => {
     dag_args: {
       dag_id: dag_args.dag_id,
       default_args: dag_args.default_args,
-      start_date: dag_args.start_date.replace('T', ' ')
+      start_date: dag_args.start_date.replace('T', ' '),
+      schedule_interval: dag_args.schedule_interval
     },
     dependencies: []
   };
@@ -79,7 +83,7 @@ export const computeResult = (operators: Operator[], dag_args: any) => {
     });
   });
 
-  return rst;
+  return {dag_params: rst, overwritten: false};
 };
 
 export const tasksource = {
@@ -92,8 +96,9 @@ export const tasksource = {
 
 export const from_frontend_1 = {
   operators: {
-    bash_op_1: {
+    bash_task_1: {
       task_id: 'bash_task_1',
+      source_id: 'bash_op_1',
       params: {
         bash_command: 'ls -l'
       },
@@ -123,5 +128,5 @@ export const from_frontend_1 = {
     },
     start_date: '2018-11-12 15:26:00'
   },
-  dependencies: ['dummy_op_1.set_downstream(bash_op_1)', 'data_socket_op_1.set_downstream(bash_op_1)']
+  dependencies: ['dummy_op_1.set_downstream(bash_task_1)', 'data_socket_op_1.set_downstream(bash_task_1)']
 };

@@ -1,6 +1,11 @@
 <template>
   <g class="operator" v-drag="drag" @mouseup="end">
+    <!-- <g > -->
     <rect class="main-rect" :class="{selected: op.selected}" @click="selectOp($event)" :x="x" :y="y" width="100" height="100" opacity="0.45"></rect>
+    <a href="javascript:;" @click="del">
+      <circle class="delete" :cx="x+100" :cy="y" r="8" fill="none"></circle>
+      <text class="delete" :x="x+100" :y="y+1" fill="none" dominant-baseline="middle" text-anchor="middle">×</text>
+    </a>
     <rect class="linkdot" :x="x-5" :y="y+45" width="10" height="10" fill="none"></rect>
     <rect class="linkdot" @mousedown="startDraw($event)" :x="x+95" :y="y+45" width="10" height="10" fill="none"></rect>
     <text v-maxlength="70" class="text-task" :x="x + 10" :y="y+25" :fill="op.task_id ? 'blue': 'red'">任务ID:{{op.task_id}}</text>
@@ -9,7 +14,8 @@
     <text  class="ghost ghost-source" :x="x + 10" :y="y+50" fill="blue">源ID:{{op.source_id}}</text>
     <rect class="detail" @click="openDialog" :x="x+10" :y="y+60" width="80" height="30" rx="5" ry="5"></rect>
     <text class="detail-text" :x="x+50" :y="y+75" fill="black" width="80" height="30" dominant-baseline="middle" text-anchor="middle">详情</text>
-    <line v-if="isMouseDown" :x1="x+100" :y1="y+50" :x2="drawTo.x" :y2="drawTo.y" stroke="red" marker-end="url(#arrow)"></line>
+    <!-- </g> -->
+    <line v-if="isMouseDown" pointer-events="none" :x1="x+100" :y1="y+50" :x2="drawTo.x" :y2="drawTo.y" stroke="red" marker-end="url(#arrow)"></line>
     <line
       class="linkline"
       v-for="o in op.next"
@@ -27,7 +33,7 @@
 </template>
 
 <script lang="ts">
-import {Vue, Component, Emit, Prop} from 'vue-property-decorator';
+import {Vue, Component, Emit, Prop, Inject} from 'vue-property-decorator';
 import {State, Mutation} from 'vuex-class';
 import {select, mouse} from 'd3-selection';
 import {Mode} from '@/model';
@@ -57,12 +63,11 @@ export default class Operator extends Vue {
 
   @State('currentOperator') public currentOperator!: op | undefined;
   @State('mode') public mode!: Mode;
-
   public isMouseDown: boolean = false;
-
   @Mutation('setMouseDown') public setMouseDown!: (down: boolean) => void;
-
   @Mutation('setCurrOperator') public setCurrOperator!: (op: op | undefined) => void;
+  @Inject() private ops!: op[];
+
 
   get x() {
     return this.op.x;
@@ -102,10 +107,29 @@ export default class Operator extends Vue {
   }
 
   @Emit() public end(event: MouseEvent) {
-    if (this.currentOperator && this.currentOperator.next.indexOf(this.op) === -1 && this.currentOperator !== this.op) {
+    if (
+      this.currentOperator && // 起点
+      this.currentOperator.next.indexOf(this.op) === -1 && // 起点不能已经指向终点
+      this.currentOperator !== this.op && // 不能是自身
+      this.op.next.indexOf(this.currentOperator) === -1 // 终点不能已经指向起点
+    ) {
       this.currentOperator.next.push(this.op);
     }
     this.setCurrOperator(void 0);
+  }
+
+  @Emit() private del() {
+    // console.log(this.dagops);
+    const idx = this.ops.indexOf(this.op);
+    this.ops.forEach(({next}) => {
+      const i = next.indexOf(this.op);
+      if (i >= 0) {
+        next.splice(i, 1);
+      }
+    });
+    if (idx >= 0) {
+      this.ops.splice(idx, 1);
+    }
   }
 
   @Emit() private selectOp(e: MouseEvent) {
@@ -135,6 +159,12 @@ export default class Operator extends Vue {
 .operator:hover {
   .linkdot {
     fill: aqua
+  }
+  circle.delete {
+    fill: red;
+  }
+  text.delete {
+    fill: #fff;
   }
 }
 .linkline:hover {

@@ -22,7 +22,8 @@
           </div>
         </div>
         <div class="dag-list-container">
-          <DagList />
+          <div>dags</div>
+          <DagList @select-dag="selectDag" ref="dagList" />
         </div>
       </div>
       <div class="draw">
@@ -120,7 +121,9 @@
           <div><input type="text" v-model="dagInfo.default_args.owner"></div>
           <label for="">dag_id:</label>
           <div><input type="text" v-model="dagInfo.dag_id"></div>
-          <label for="">开始日期: {{dagInfo.start_date}}</label>
+          <label for="">定时器:</label>
+          <div><input type="text" v-model="dagInfo.schedule_interval" placeholder="请输入crontab表达式"></div>
+          <label for="">开始日期: </label>
           <div><input type="datetime-local" v-model="dagInfo.start_date"></div>
         </div>
       </div>
@@ -129,18 +132,18 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Emit } from 'vue-property-decorator';
+import { Vue, Component, Emit, Provide } from 'vue-property-decorator';
 import { State, Mutation } from 'vuex-class';
 import { brush } from 'd3-brush';
 import { select, event, mouse } from 'd3-selection';
 import {get, post} from '@/utils/ajax';
-import { delTaskSource } from '@/api';
+import { delTaskSource, getDagsById } from '@/api';
 import { Operator as Op, computeResult, OperatorData } from './relation';
 import Operator from './Operator.vue';
 import DagList from './DagList.vue';
 import Dialog from './Dialog.vue';
 import { Mode } from '@/model';
-
+import convertDag, {Dag} from '@/utils/convertDag';
 
 @Component({
   components: {
@@ -149,8 +152,8 @@ import { Mode } from '@/model';
     DagList
   }
 })
-export default class Dag extends Vue {
-  private ops: Op[] = [];
+export default class DagComp extends Vue {
+  @Provide() private ops: Op[] = [];
   private drag: boolean = false;
   private dragSource: OperatorData|null = null;
   private dragOperator: Op|null = null;
@@ -166,6 +169,7 @@ export default class Dag extends Vue {
     default_args: {
       owner: ''
     },
+    schedule_interval: '',
     start_date: ''
   };
   private hideDagInfo = false;
@@ -212,6 +216,36 @@ export default class Dag extends Vue {
     if (!this.errorMessage) {
       this.dialogVisible = false;
     }
+  }
+
+  @Emit() private selectDag(dag: Dag) {
+    this.$confirm('确定覆盖正在编辑的dag吗?', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      const info = this.$message({
+        type: 'info',
+        message: '计算中请稍后。。。',
+        duration: 0
+      });
+      this.dagInfo = {...dag.dag_args};
+      this.dagInfo.start_date = this.dagInfo.start_date.replace(' ', 'T');
+      convertDag(dag).then((ops) => {
+        // this.ops = ops;
+        const length = this.ops.length;
+        this.ops.splice(0, length);
+        ops.forEach(op => {
+          this.ops.push(op);
+        });
+        info.close();
+      }).catch(e => {
+        console.warn(e);
+        info.close();
+      });
+    }).catch(e => {
+      // innore
+    });
   }
 
   @Emit() private handleSourceDragover() {}
@@ -324,7 +358,7 @@ export default class Dag extends Vue {
     });
   }
 
-  @Emit() private submitResult() {
+  @Emit() private async submitResult() {
     this.hideDagInfo = false;
     if (!this.ops.length) {
       return this.$message('没有operator');
@@ -345,16 +379,41 @@ export default class Dag extends Vue {
     if (!this.dagInfo.start_date) {
       return this.$message('请填写开始时间');
     }
-
+    let dag;
+    try {
+      dag = await getDagsById(this.dagInfo.dag_id);
+    } catch (e) {
+      // ignore
+    }
     const data = computeResult(this.ops, this.dagInfo);
-    post('/api/experimental/dags/create_dagfile', data).then(({status, msg}) => {
-      if (status === 0) {
-        alert('修改成功');
-      } else {
-        alert(msg);
-      }
-    });
-    // get('/api/experimental/dags/create_dagfile', {params: data}).then(res => {});
+    if (dag) {
+      // 存在dag
+      this.$confirm('存在该dag_id，确定覆盖?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        data.overwritten = true;
+        postRst(data);
+      }).catch(e => {
+        // ignore
+      });
+    } else {
+      postRst(data);
+    }
+
+    const self = this;
+
+    function postRst(d: any) {
+      post('/api/experimental/dags/create_dagfile', d).then(({status, msg}) => {
+        if (status === 0) {
+          self.$message('修改成功');
+          (self.$refs.dagList as DagList).getDags();
+        } else {
+          alert(msg);
+        }
+      });
+    }
   }
 
   @Emit() private delTaskSource(id: string)  {
@@ -469,11 +528,12 @@ export default class Dag extends Vue {
         color: #fff;
         cursor: move;
         border-bottom: 1px solid pink;
-        overflow: hidden;
-        white-space: nowrap;
         display: flex;
         span {
           width: @short-width * 0.9;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
         }
         a {
           width: @short-width * 0.1;
@@ -484,6 +544,9 @@ export default class Dag extends Vue {
             background-color: #e00;
           }
         }
+      }
+      .dag-list-container {
+        padding: 10px 0;
       }
     }
     .draw {

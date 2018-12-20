@@ -16,6 +16,7 @@ export interface Dag {
       owner: string;
     };
     start_date: string;
+    schedule_interval: string;
   };
   dependencies: string[];
 }
@@ -25,7 +26,7 @@ const computLocation = (nodes: any[], edges: any[]) => {
     const force = forceSimulation()
       .force('link', forceLink())
       .force('change', forceManyBody())
-      .force('center', forceCenter(400, 400))
+      .force('center', forceCenter(200, 200))
       .force('collide', forceCollide(100));
 
     force.nodes(nodes).on('end', function() {
@@ -37,8 +38,12 @@ const computLocation = (nodes: any[], edges: any[]) => {
 
 const convertDag = async (dag: Dag) => {
   const ops: Operator[] = [];
-  for (const operator of Object.values(dag.operators)) {
+  for (const [key, operator] of Object.entries(dag.operators)) {
     const op = new Operator();
+    if (!operator.source_id) {
+      operator.task_id = key;
+      operator.source_id = key;
+    }
     op.setData(operator);
     ops.push(op);
   }

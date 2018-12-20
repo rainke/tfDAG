@@ -21,6 +21,7 @@
     "no-unused-expression": [true, "allow-fast-null-checks"],
     "no-empty": false,
     "variable-name": false,
-    "no-namespace": false
+    "no-namespace": false,
+    "no-console": [true, "wran", "error"]
   }
 }
